@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TechZone | Login</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f0f4f8; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+        body::before { content: ''; position: fixed; inset: 0; background: linear-gradient(135deg, #0f1f3d 0%, #1e3a5f 50%, #0f1f3d 100%); z-index: 0; }
+        body::after { content: ''; position: fixed; width: 600px; height: 600px; border-radius: 50%; background: radial-gradient(circle, rgba(37,99,235,0.15) 0%, transparent 70%); top: -200px; right: -200px; z-index: 0; }
+        .login-wrapper { position: relative; z-index: 1; display: flex; width: 900px; min-height: 520px; border-radius: 24px; overflow: hidden; box-shadow: 0 32px 80px rgba(0,0,0,0.4); }
+        .left-panel { flex: 1; background: linear-gradient(145deg, #1e3a5f, #0f1f3d); padding: 52px 44px; display: flex; flex-direction: column; justify-content: space-between; border-right: 1px solid rgba(255,255,255,0.06); }
+        .brand { font-size: 1.5rem; font-weight: 900; color: #fff; letter-spacing: -0.5px; }
+        .brand span { color: #38bdf8; }
+        .brand-sub { font-size: 0.7rem; color: rgba(255,255,255,0.35); text-transform: uppercase; letter-spacing: 0.12em; margin-top: 4px; }
+        .left-content h2 { font-size: 1.6rem; font-weight: 800; color: #fff; line-height: 1.3; margin-bottom: 16px; }
+        .left-content h2 span { color: #38bdf8; }
+        .left-content p { font-size: 0.85rem; color: rgba(255,255,255,0.5); line-height: 1.6; }
+        .feature-list { display: flex; flex-direction: column; gap: 12px; margin-top: 24px; }
+        .feature-item { display: flex; align-items: center; gap: 10px; font-size: 0.8rem; color: rgba(255,255,255,0.6); }
+        .feature-dot { width: 6px; height: 6px; background: #38bdf8; border-radius: 50%; flex-shrink: 0; }
+        .left-footer { font-size: 0.68rem; color: rgba(255,255,255,0.2); }
+        .right-panel { width: 400px; background: #fff; padding: 52px 44px; display: flex; flex-direction: column; justify-content: center; }
+        .form-header { margin-bottom: 32px; }
+        .form-header h3 { font-size: 1.4rem; font-weight: 800; color: #0f1f3d; margin-bottom: 6px; }
+        .form-header p { font-size: 0.8rem; color: #94a3b8; }
+        .form-group { margin-bottom: 18px; }
+        label { display: block; font-size: 0.75rem; font-weight: 700; color: #374151; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 7px; }
+        input[type="text"], input[type="password"] { width: 100%; padding: 12px 14px; border: 1.5px solid #e2e8f0; border-radius: 10px; font-size: 0.9rem; color: #1a202c; background: #f8fafc; outline: none; transition: border-color 0.15s, box-shadow 0.15s; }
+        input:focus { border-color: #2563eb; background: #fff; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+        .btn-login { width: 100%; padding: 13px; background: #1e3a5f; color: #fff; border: none; border-radius: 10px; font-size: 0.9rem; font-weight: 700; cursor: pointer; margin-top: 8px; transition: background 0.15s, transform 0.1s; letter-spacing: 0.02em; }
+        .btn-login:hover { background: #2563eb; transform: translateY(-1px); }
+        .btn-login:active { transform: translateY(0); }
+        .btn-login:disabled { background: #94a3b8; cursor: not-allowed; transform: none; }
+        .alert { padding: 11px 14px; border-radius: 9px; font-size: 0.8rem; font-weight: 600; margin-bottom: 18px; display: none; }
+        .alert-error { background: #fff1f2; color: #dc2626; border: 1px solid #fecaca; }
+        .alert-expired { background: #fffbeb; color: #d97706; border: 1px solid #fde68a; }
+        .form-footer { margin-top: 24px; padding-top: 20px; border-top: 1px solid #f1f5f9; font-size: 0.72rem; color: #94a3b8; text-align: center; }
+        .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.4); border-top-color: #fff; border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; margin-right: 6px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+<div class="login-wrapper">
+    <div class="left-panel">
+        <div>
+            <div class="brand">Tech<span>Zone</span></div>
+            <div class="brand-sub">Intelligence Platform</div>
+        </div>
+        <div class="left-content">
+            <h2>Enterprise<br><span>WhatsApp</span><br>Analytics</h2>
+            <p>Real-time business intelligence for your WhatsApp automation system.</p>
+            <div class="feature-list">
+                <div class="feature-item"><div class="feature-dot"></div>Live conversation monitoring</div>
+                <div class="feature-item"><div class="feature-dot"></div>Sentiment & escalation tracking</div>
+                <div class="feature-item"><div class="feature-dot"></div>Order & revenue analytics</div>
+                <div class="feature-item"><div class="feature-dot"></div>CSV & PDF export</div>
+                <div class="feature-item"><div class="feature-dot"></div>Multi-language support</div>
+            </div>
+        </div>
+        <div class="left-footer">Project 1 / 50 · Enterprise Agentic AI Portfolio</div>
+    </div>
+    <div class="right-panel">
+        <div class="form-header">
+            <h3>Welcome back</h3>
+            <p>Sign in to access your dashboard</p>
+        </div>
+        <div class="alert alert-error" id="errorAlert">✗ Invalid username or password. Please try again.</div>
+        <div class="alert alert-expired" id="expiredAlert">⚠ Your session expired. Please sign in again.</div>
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" placeholder="Enter username" autocomplete="username" />
+            </div>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" placeholder="Enter password" autocomplete="current-password" />
+            </div>
+            <button type="submit" class="btn-login" id="loginBtn">Sign In</button>
+        </form>
+        <div class="form-footer">TechZone WhatsApp Intelligence · Secure Access</div>
+    </div>
+</div>
+<script>
+    if (window.location.search.includes('expired=1')) { document.getElementById('expiredAlert').style.display = 'block'; }
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const username = document.getElementById('username').value.trim();
+        const password = document.getElementById('password').value;
+        const btn = document.getElementById('loginBtn');
+        const errAlert = document.getElementById('errorAlert');
+        if (!username || !password) return;
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner"></span>Signing in...';
+        errAlert.style.display = 'none';
+        try {
+            const res = await fetch('/api/login', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username, password}) });
+            const data = await res.json();
+            if (res.ok && data.token) {
+                localStorage.setItem('tz_token', data.token);
+                localStorage.setItem('tz_user', username);
+                window.location.href = '/dashboard';
+            } else {
+                errAlert.style.display = 'block';
+                btn.disabled = false;
+                btn.innerHTML = 'Sign In';
+            }
+        } catch(err) {
+            errAlert.style.display = 'block';
+            btn.disabled = false;
+            btn.innerHTML = 'Sign In';
+        }
+    });
+    document.getElementById('password').addEventListener('keydown', (e) => { if(e.key==='Enter') document.getElementById('loginForm').requestSubmit(); });
+</script>
+</body>
+</html>

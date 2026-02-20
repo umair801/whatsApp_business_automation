@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TechZone | Business Intelligence Dashboard</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: #f0f4f8; color: #1a202c; min-height: 100vh; }
+        .sidebar { position: fixed; top: 0; left: 0; width: 220px; height: 100vh; background: #1e3a5f; display: flex; flex-direction: column; z-index: 100; box-shadow: 4px 0 20px rgba(0,0,0,0.12); }
+        .sidebar-logo { padding: 24px 20px 20px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .sidebar-logo .brand { font-size: 1.15rem; font-weight: 800; color: #fff; letter-spacing: -0.3px; }
+        .sidebar-logo .brand span { color: #38bdf8; }
+        .sidebar-logo .sub { font-size: 0.68rem; color: rgba(255,255,255,0.45); margin-top: 3px; letter-spacing: 0.04em; text-transform: uppercase; }
+        .sidebar-nav { padding: 16px 0; flex: 1; }
+        .nav-section { padding: 6px 16px 4px; font-size: 0.62rem; color: rgba(255,255,255,0.3); text-transform: uppercase; letter-spacing: 0.1em; margin-top: 8px; }
+        .nav-item { display: flex; align-items: center; gap: 10px; padding: 10px 20px; color: rgba(255,255,255,0.65); font-size: 0.82rem; cursor: pointer; border-left: 3px solid transparent; transition: all 0.15s; }
+        .nav-item:hover { background: rgba(255,255,255,0.07); color: #fff; }
+        .nav-item.active { background: rgba(56,189,248,0.12); color: #38bdf8; border-left-color: #38bdf8; font-weight: 600; }
+        .nav-icon { font-size: 1rem; width: 18px; text-align: center; }
+        .sidebar-footer { padding: 16px 20px; border-top: 1px solid rgba(255,255,255,0.08); font-size: 0.7rem; color: rgba(255,255,255,0.3); }
+        .main { margin-left: 220px; min-height: 100vh; display: flex; flex-direction: column; }
+        .topbar { background: #fff; border-bottom: 1px solid #e2e8f0; padding: 14px 28px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 50; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+        .topbar-title { font-size: 1rem; font-weight: 700; color: #1e3a5f; }
+        .topbar-title span { font-weight: 400; color: #94a3b8; font-size: 0.85rem; margin-left: 8px; }
+        .topbar-right { display: flex; align-items: center; gap: 12px; }
+        .live-badge { display: inline-flex; align-items: center; gap: 6px; background: #f0fdf4; border: 1px solid #bbf7d0; color: #16a34a; padding: 5px 14px; border-radius: 20px; font-size: 0.73rem; font-weight: 600; }
+        .live-dot { width: 7px; height: 7px; background: #22c55e; border-radius: 50%; animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(0.85); } }
+        .last-updated { font-size: 0.73rem; color: #94a3b8; background: #f8fafc; border: 1px solid #e2e8f0; padding: 5px 12px; border-radius: 8px; }
+        .content { padding: 24px 28px; flex: 1; }
+        .page-header { margin-bottom: 22px; }
+        .page-header h2 { font-size: 1.3rem; font-weight: 700; color: #1e3a5f; }
+        .page-header p { font-size: 0.8rem; color: #64748b; margin-top: 3px; }
+        .kpi-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 14px; margin-bottom: 22px; }
+        .kpi-card { background: #fff; border-radius: 14px; padding: 18px 16px; border: 1px solid #e8edf3; box-shadow: 0 1px 4px rgba(0,0,0,0.05); position: relative; overflow: hidden; transition: transform 0.18s, box-shadow 0.18s; }
+        .kpi-card:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.09); }
+        .kpi-icon { width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; margin-bottom: 12px; }
+        .kpi-icon.green { background: #f0fdf4; } .kpi-icon.blue { background: #eff6ff; } .kpi-icon.purple { background: #faf5ff; } .kpi-icon.teal { background: #f0fdfa; } .kpi-icon.red { background: #fff1f2; } .kpi-icon.amber { background: #fffbeb; }
+        .kpi-label { font-size: 0.68rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.07em; font-weight: 600; margin-bottom: 4px; }
+        .kpi-value { font-size: 1.7rem; font-weight: 800; color: #1e293b; line-height: 1; margin-bottom: 4px; }
+        .kpi-sub { font-size: 0.7rem; color: #94a3b8; }
+        .kpi-accent { position: absolute; bottom: 0; left: 0; right: 0; height: 3px; border-radius: 0 0 14px 14px; }
+        .kpi-accent.green { background: linear-gradient(90deg, #4ade80, #22c55e); } .kpi-accent.blue { background: linear-gradient(90deg, #60a5fa, #3b82f6); } .kpi-accent.purple { background: linear-gradient(90deg, #c084fc, #a855f7); } .kpi-accent.teal { background: linear-gradient(90deg, #2dd4bf, #14b8a6); } .kpi-accent.red { background: linear-gradient(90deg, #f87171, #ef4444); } .kpi-accent.amber { background: linear-gradient(90deg, #fbbf24, #f59e0b); }
+        .charts-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-bottom: 16px; }
+        .charts-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+        .chart-card { background: #fff; border-radius: 14px; padding: 20px; border: 1px solid #e8edf3; box-shadow: 0 1px 4px rgba(0,0,0,0.05); }
+        .chart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+        .chart-title { font-size: 0.82rem; font-weight: 700; color: #374151; text-transform: uppercase; letter-spacing: 0.05em; }
+        .chart-badge { font-size: 0.68rem; background: #eff6ff; color: #3b82f6; border: 1px solid #bfdbfe; padding: 2px 10px; border-radius: 20px; font-weight: 600; }
+        .chart-badge.red { background: #fff1f2; color: #ef4444; border-color: #fecaca; }
+        .chart-container { position: relative; height: 200px; } .chart-container.tall { height: 250px; }
+        .table-card { background: #fff; border-radius: 14px; padding: 20px; border: 1px solid #e8edf3; box-shadow: 0 1px 4px rgba(0,0,0,0.05); margin-bottom: 16px; overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; }
+        thead tr { background: #f8fafc; }
+        th { text-align: left; font-size: 0.68rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700; padding: 10px 14px; border-bottom: 1px solid #f1f5f9; }
+        td { padding: 11px 14px; font-size: 0.82rem; color: #374151; border-bottom: 1px solid #f8fafc; }
+        tr:last-child td { border-bottom: none; } tr:hover td { background: #f8fafc; }
+        .badge-status { padding: 3px 10px; border-radius: 20px; font-size: 0.68rem; font-weight: 700; text-transform: capitalize; }
+        .badge-open { background: #fff1f2; color: #ef4444; border: 1px solid #fecaca; } .badge-resolved { background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; } .badge-pending { background: #fffbeb; color: #d97706; border: 1px solid #fde68a; } .badge-angry { background: #fff1f2; color: #ef4444; } .badge-negative { background: #fff7ed; color: #ea580c; }
+        .section-divider { font-size: 0.72rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.1em; margin: 20px 0 12px; display: flex; align-items: center; gap: 10px; }
+        .section-divider::after { content: ''; flex: 1; height: 1px; background: #e2e8f0; }
+        .footer { text-align: center; padding: 16px 28px; color: #cbd5e1; font-size: 0.72rem; border-top: 1px solid #e8edf3; background: #fff; }
+    </style>
+</head>
+<body>
+<div class="sidebar">
+    <div class="sidebar-logo">
+        <div class="brand">Tech<span>Zone</span></div>
+        <div class="sub">Intelligence Platform</div>
+    </div>
+    <nav class="sidebar-nav">
+        <div class="nav-section">Analytics</div>
+        <div class="nav-item active"><span class="nav-icon">📊</span> Dashboard</div>
+        <div class="nav-item"><span class="nav-icon">💬</span> Conversations</div>
+        <div class="nav-item"><span class="nav-icon">📦</span> Orders</div>
+        <div class="nav-item"><span class="nav-icon">🚨</span> Escalations</div>
+        <div class="nav-section">System</div>
+        <div class="nav-item"><span class="nav-icon">❤️</span> Health Check</div>
+        <div class="nav-item"><span class="nav-icon">⚡</span> Cache Stats</div>
+        <div class="nav-item"><span class="nav-icon">📋</span> API Docs</div>
+    </nav>
+    <div class="sidebar-footer">Project 1 / 50 · Enterprise AI Portfolio</div>
+</div>
+<div class="main">
+    <div class="topbar">
+        <div class="topbar-title">Overview Dashboard <span>/ Real-time Business Intelligence</span></div>
+        <div class="topbar-right">
+            <div style="display:flex; gap:8px; margin-right:8px;">
+                <div style="position:relative; display:inline-block;">
+                    <button onclick="toggleExportMenu()" style="display:flex; align-items:center; gap:6px; background:#1e3a5f; color:#fff; border:none; padding:7px 14px; border-radius:8px; font-size:0.75rem; font-weight:600; cursor:pointer;">⬇ Export ▾</button>
+                    <div id="exportMenu" style="display:none; position:absolute; right:0; top:36px; background:#fff; border:1px solid #e2e8f0; border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,0.12); padding:6px; z-index:200; min-width:200px;">
+                        <a href="/export/pdf" style="display:block; padding:8px 14px; font-size:0.8rem; color:#1e3a5f; text-decoration:none; border-radius:6px; font-weight:600;" onmouseover="this.style.background='#f0f4f8'" onmouseout="this.style.background=''">📄 Full Report (PDF)</a>
+                        <div style="height:1px; background:#f1f5f9; margin:4px 0;"></div>
+                        <a href="/export/csv/overview" style="display:block; padding:8px 14px; font-size:0.8rem; color:#374151; text-decoration:none; border-radius:6px;" onmouseover="this.style.background='#f0f4f8'" onmouseout="this.style.background=''">📊 Overview (CSV)</a>
+                        <a href="/export/csv/orders" style="display:block; padding:8px 14px; font-size:0.8rem; color:#374151; text-decoration:none; border-radius:6px;" onmouseover="this.style.background='#f0f4f8'" onmouseout="this.style.background=''">📦 Orders (CSV)</a>
+                        <a href="/export/csv/escalations" style="display:block; padding:8px 14px; font-size:0.8rem; color:#374151; text-decoration:none; border-radius:6px;" onmouseover="this.style.background='#f0f4f8'" onmouseout="this.style.background=''">🚨 Escalations (CSV)</a>
+                        <a href="/export/csv/trends" style="display:block; padding:8px 14px; font-size:0.8rem; color:#374151; text-decoration:none; border-radius:6px;" onmouseover="this.style.background='#f0f4f8'" onmouseout="this.style.background=''">📈 Trends (CSV)</a>
+                    </div>
+                </div>
+            </div>
+            <span class="live-badge"><span class="live-dot"></span> LIVE · 30s refresh</span>
+            <span class="last-updated" id="last-updated">Loading...</span>
+            <a href="/logout" style="display:flex; align-items:center; gap:6px; background:#fff1f2; color:#dc2626; border:1px solid #fecaca; padding:5px 14px; border-radius:8px; font-size:0.73rem; font-weight:600; text-decoration:none;" onmouseover="this.style.background='#fee2e2'" onmouseout="this.style.background='#fff1f2'">⏻ Logout</a>
+        </div>
+    </div>
+    <div class="content">
+        <div class="page-header">
+            <h2>Business Intelligence Overview</h2>
+            <p>Real-time metrics from your WhatsApp automation system</p>
+        </div>
+        <div class="kpi-grid" id="kpi-grid"></div>
+        <div class="section-divider">Conversation Analytics</div>
+        <div class="charts-grid">
+            <div class="chart-card">
+                <div class="chart-header"><div class="chart-title">Messages Per Day</div><span class="chart-badge">Last 7 Days</span></div>
+                <div class="chart-container tall"><canvas id="trendChart"></canvas></div>
+            </div>
+            <div class="chart-card">
+                <div class="chart-header"><div class="chart-title">Language Distribution</div></div>
+                <div class="chart-container tall"><canvas id="languageChart"></canvas></div>
+            </div>
+        </div>
+        <div class="section-divider">Orders & Escalations</div>
+        <div class="charts-row">
+            <div class="chart-card">
+                <div class="chart-header"><div class="chart-title">Order Status</div></div>
+                <div class="chart-container"><canvas id="orderStatusChart"></canvas></div>
+            </div>
+            <div class="chart-card">
+                <div class="chart-header"><div class="chart-title">Escalation Sentiment</div></div>
+                <div class="chart-container"><canvas id="sentimentChart"></canvas></div>
+            </div>
+            <div class="chart-card">
+                <div class="chart-header"><div class="chart-title">Escalation Status</div><span class="chart-badge red" id="open-count-badge">-- open</span></div>
+                <div class="chart-container"><canvas id="escalationChart"></canvas></div>
+            </div>
+        </div>
+        <div class="section-divider">Recent Activity</div>
+        <div class="table-card">
+            <div class="chart-header" style="margin-bottom:12px;"><div class="chart-title">Recent Orders</div></div>
+            <table>
+                <thead><tr><th>Order #</th><th>Product</th><th>Amount</th><th>Status</th><th>Date</th></tr></thead>
+                <tbody id="orders-table-body"><tr><td colspan="5" style="text-align:center; color:#94a3b8; padding:24px;">Loading...</td></tr></tbody>
+            </table>
+        </div>
+        <div class="table-card">
+            <div class="chart-header" style="margin-bottom:12px;"><div class="chart-title">Recent Escalations</div></div>
+            <table>
+                <thead><tr><th>Case ID</th><th>Score</th><th>Label</th><th>Reason</th><th>Status</th><th>Time</th></tr></thead>
+                <tbody id="escalations-table-body"><tr><td colspan="6" style="text-align:center; color:#94a3b8; padding:24px;">Loading...</td></tr></tbody>
+            </table>
+        </div>
+    </div>
+    <div class="footer">TechZone WhatsApp Intelligence · Enterprise Agentic AI Portfolio · Project 1 / 50</div>
+</div>
+<script>
+let trendChart, languageChart, orderStatusChart, sentimentChart, escalationChart;
+const C = { blue:'#3b82f6', green:'#22c55e', teal:'#14b8a6', amber:'#f59e0b', red:'#ef4444', orange:'#f97316', purple:'#a855f7' };
+const LIGHT_GRID = { x:{ticks:{color:'#94a3b8',font:{size:10}},grid:{color:'#f1f5f9'}}, y:{ticks:{color:'#94a3b8',font:{size:10}},grid:{color:'#f1f5f9'},beginAtZero:true} };
+const LEGEND_LIGHT = { labels:{color:'#64748b',font:{size:11},padding:16} };
+
+function renderKPIs(o) {
+    const cards = [
+        { label:'Unique Customers', value:o.unique_customers??'—', sub:'all time', icon:'👥', color:'blue' },
+        { label:'Total Messages', value:o.total_messages??'—', sub:`${o.messages_today??0} today`, icon:'💬', color:'teal' },
+        { label:'Total Orders', value:o.total_orders??'—', sub:`${o.pending_orders??0} pending`, icon:'📦', color:'purple' },
+        { label:'Revenue (Rs.)', value:(o.total_revenue||0).toLocaleString(), sub:'all orders', icon:'💰', color:'green' },
+        { label:'Open Escalations', value:o.open_escalations??'—', sub:`${o.total_escalations??0} total`, icon:'🚨', color:'red' },
+        { label:'Messages Today', value:o.messages_today??'—', sub:'since midnight', icon:'📅', color:'amber' },
+    ];
+    document.getElementById('kpi-grid').innerHTML = cards.map(c => `
+        <div class="kpi-card">
+            <div class="kpi-icon ${c.color}">${c.icon}</div>
+            <div class="kpi-label">${c.label}</div>
+            <div class="kpi-value">${c.value}</div>
+            <div class="kpi-sub">${c.sub}</div>
+            <div class="kpi-accent ${c.color}"></div>
+        </div>`).join('');
+}
+function renderTrendChart(trends) {
+    const ctx = document.getElementById('trendChart').getContext('2d');
+    if (trendChart) trendChart.destroy();
+    trendChart = new Chart(ctx, { type:'bar', data:{ labels:trends.map(t=>t.date.slice(5)), datasets:[{ label:'Messages', data:trends.map(t=>t.messages), backgroundColor:'rgba(59,130,246,0.15)', borderColor:C.blue, borderWidth:2, borderRadius:8, borderSkipped:false }] }, options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:LIGHT_GRID } });
+}
+function renderLanguageChart(languages) {
+    const ctx = document.getElementById('languageChart').getContext('2d');
+    if (languageChart) languageChart.destroy();
+    languageChart = new Chart(ctx, { type:'doughnut', data:{ labels:languages.map(l=>l.language), datasets:[{ data:languages.map(l=>l.count), backgroundColor:[C.blue,C.green,C.purple], borderColor:'#fff', borderWidth:3, hoverOffset:6 }] }, options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom',...LEGEND_LIGHT}}, cutout:'68%' } });
+}
+function renderOrderStatusChart(breakdown) {
+    const ctx = document.getElementById('orderStatusChart').getContext('2d');
+    if (orderStatusChart) orderStatusChart.destroy();
+    orderStatusChart = new Chart(ctx, { type:'doughnut', data:{ labels:breakdown.map(b=>b.status), datasets:[{ data:breakdown.map(b=>b.count), backgroundColor:[C.amber,C.green,C.red,C.blue], borderColor:'#fff', borderWidth:3, hoverOffset:6 }] }, options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom',...LEGEND_LIGHT}}, cutout:'62%' } });
+}
+function renderSentimentChart(distribution) {
+    const ctx = document.getElementById('sentimentChart').getContext('2d');
+    const colorMap = { angry:C.red, negative:C.orange, neutral:C.blue };
+    if (sentimentChart) sentimentChart.destroy();
+    sentimentChart = new Chart(ctx, { type:'bar', data:{ labels:distribution.map(d=>d.label), datasets:[{ label:'Count', data:distribution.map(d=>d.count), backgroundColor:distribution.map(d=>colorMap[d.label]||C.purple), borderRadius:8, borderSkipped:false }] }, options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:LIGHT_GRID } });
+}
+function renderEscalationChart(open, resolved) {
+    const ctx = document.getElementById('escalationChart').getContext('2d');
+    if (escalationChart) escalationChart.destroy();
+    document.getElementById('open-count-badge').textContent = `${open} open`;
+    escalationChart = new Chart(ctx, { type:'doughnut', data:{ labels:['Open','Resolved'], datasets:[{ data:[open,resolved], backgroundColor:[C.red,C.green], borderColor:'#fff', borderWidth:3, hoverOffset:6 }] }, options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom',...LEGEND_LIGHT}}, cutout:'62%' } });
+}
+function renderOrdersTable(orders) {
+    const tbody = document.getElementById('orders-table-body');
+    if (!orders||orders.length===0) { tbody.innerHTML='<tr><td colspan="5" style="text-align:center;color:#94a3b8;padding:24px;">No orders yet</td></tr>'; return; }
+    tbody.innerHTML = orders.map(o=>`<tr><td style="font-family:monospace;font-weight:600;color:#3b82f6;">${o.order_number||o.id}</td><td>${o.product_name||'—'}</td><td style="font-weight:600;">Rs. ${(o.total_amount||0).toLocaleString()}</td><td><span class="badge-status badge-${o.status}">${o.status}</span></td><td style="color:#94a3b8;">${(o.created_at||'').slice(0,10)}</td></tr>`).join('');
+}
+function renderEscalationsTable(escalations) {
+    const tbody = document.getElementById('escalations-table-body');
+    if (!escalations||escalations.length===0) { tbody.innerHTML='<tr><td colspan="6" style="text-align:center;color:#94a3b8;padding:24px;">No escalations yet</td></tr>'; return; }
+    tbody.innerHTML = escalations.map(e=>`<tr><td style="font-family:monospace;font-size:0.75rem;font-weight:600;color:#3b82f6;">${e.case_id}</td><td style="font-weight:700;color:${e.sentiment_score<-0.7?'#ef4444':'#f59e0b'}">${(e.sentiment_score||0).toFixed(2)}</td><td><span class="badge-status badge-${e.sentiment_label}">${e.sentiment_label||'—'}</span></td><td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#64748b;">${e.escalation_reason||'—'}</td><td><span class="badge-status badge-${e.status}">${e.status}</span></td><td style="color:#94a3b8;font-size:0.75rem;">${(e.timestamp||'').slice(0,16).replace('T',' ')}</td></tr>`).join('');
+}
+async function fetchAndRender() {
+    try {
+        const res = await fetch('/api/dashboard');
+        const data = await res.json();
+        document.getElementById('last-updated').textContent = 'Updated: ' + new Date(data.generated_at).toLocaleTimeString();
+        renderKPIs(data.overview);
+        renderTrendChart(data.conversation_trends);
+        renderLanguageChart(data.language_breakdown);
+        renderOrderStatusChart(data.order_metrics.status_breakdown);
+        renderSentimentChart(data.escalation_metrics.sentiment_distribution);
+        renderEscalationChart(data.escalation_metrics.open_count, data.escalation_metrics.resolved_count);
+        renderOrdersTable(data.order_metrics.recent_orders);
+        renderEscalationsTable(data.escalation_metrics.recent_escalations);
+    } catch(err) { document.getElementById('last-updated').textContent = '⚠ Error loading data'; }
+}
+const socket = io();
+const liveBadge = document.querySelector('.live-badge');
+const liveDot = document.querySelector('.live-dot');
+socket.on('connect', () => { liveBadge.style.cssText='background:#f0fdf4;border:1px solid #bbf7d0;color:#16a34a;'; liveBadge.innerHTML='<span class="live-dot"></span> LIVE · Real-time'; });
+socket.on('disconnect', () => { liveBadge.style.cssText='background:#fff1f2;border:1px solid #fecaca;color:#dc2626;'; liveBadge.innerHTML='<span class="live-dot" style="background:#ef4444"></span> OFFLINE'; });
+socket.on('kpi_update', (data) => {
+    if (data.overview) {
+        const o = data.overview;
+        const kpiEls = document.querySelectorAll('.kpi-value');
+        const kpiMap = [o.unique_customers, o.total_messages, o.total_orders, o.total_revenue?'Rs. '+o.total_revenue.toLocaleString():'Rs. 0', o.open_escalations, o.messages_today];
+        kpiEls.forEach((el,i) => { if(kpiMap[i]!==undefined) el.textContent=kpiMap[i]; });
+    }
+    document.getElementById('last-updated').textContent = 'Updated: ' + new Date().toLocaleTimeString();
+    showToast('🔄 Dashboard updated in real-time');
+});
+socket.on('new_message', (data) => { const badge={english:'🇬🇧',roman_urdu:'🇵🇰',urdu:'🇵🇰'}[data.language]||'💬'; showToast(`${badge} New ${data.language} message · ${data.intent}`); });
+socket.on('escalation', (data) => { showToast(`🚨 Escalation: ${data.case_id} · Score: ${data.score}`, true); fetchAndRender(); });
+socket.on('new_order', (data) => { showToast(`📦 New order: ${data.order_number}`); fetchAndRender(); });
+function showToast(message, isAlert=false) {
+    const existing = document.getElementById('tz-toast');
+    if (existing) existing.remove();
+    const toast = document.createElement('div');
+    toast.id = 'tz-toast';
+    toast.textContent = message;
+    Object.assign(toast.style, { position:'fixed', bottom:'24px', right:'24px', background:isAlert?'#7f1d1d':'#0f1f3d', color:'#fff', padding:'12px 20px', borderRadius:'10px', fontSize:'0.82rem', fontWeight:'600', boxShadow:'0 8px 24px rgba(0,0,0,0.25)', zIndex:'9999', transition:'opacity 0.3s', borderLeft:isAlert?'4px solid #ef4444':'4px solid #38bdf8' });
+    document.body.appendChild(toast);
+    setTimeout(() => { toast.style.opacity='0'; setTimeout(() => toast.remove(), 300); }, 4000);
+}
+fetchAndRender();
+function toggleExportMenu() { const menu=document.getElementById('exportMenu'); menu.style.display=menu.style.display==='none'?'block':'none'; }
+document.addEventListener('click', (e) => { const menu=document.getElementById('exportMenu'); if(menu&&!e.target.closest('#exportMenu')&&!e.target.closest('button')) menu.style.display='none'; });
+</script>
+</body>
+</html>

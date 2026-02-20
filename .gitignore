@@ -1,0 +1,47 @@
+# Secrets -- NEVER commit
+.env
+*.env
+.env.local
+.env.production
+.env.*.local
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+.venv/
+venv/
+env/
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Logs
+*.log
+logs/
+
+# ChromaDB (ephemeral, rebuilt on deploy)
+chroma_db/
+*.chroma
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Node (dashboard-spa is local only)
+node_modules/
+
+# Test artifacts
+*.test.py
+test_*.py
+.pytest_cache/
+htmlcov/
+.coverage
