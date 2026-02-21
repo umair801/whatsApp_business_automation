@@ -1,7 +1,8 @@
 """
 app.py
-Enterprise WhatsApp Business Automation System
-TechZone - Production-Ready AI Agent
+Enterprise WhatsApp Business Automation System - Step 13
+Adds: Sentiment Analysis & Complaint Escalation
+Builds on: step12_with_function_calling.py
 """
 
 import os
@@ -23,27 +24,25 @@ from redis_cache import RedisCache
 from product_knowledge import ProductKnowledgeBase
 from order_manager import OrderManager, FUNCTION_TOOLS
 
+# ── Step 13 imports ──────────────────────────
 from sentiment_analyzer import analyze_sentiment
 from escalation_handler import handle_escalation
 
+# ── Step 14 imports ──────────────────────────
 from flask import render_template, make_response, jsonify, redirect
 from analytics import AnalyticsEngine
 from export_manager import ExportManager
 
+# ── Step 16 imports ──────────────────────────
 from auth_manager import auth_manager, jwt_required, dashboard_login_required
 
+# ── Step 17 imports ──────────────────────────
 from websocket_manager import socketio, ws_manager
-
-# Startup validation
-from startup_check import check_environment, ensure_knowledge_base
 
 load_dotenv()
 
 # Setup structured logging
 logger = setup_logging(log_level=os.getenv("LOG_LEVEL", "INFO"))
-
-# Validate environment on boot
-check_environment()
 
 # Initialize clients
 try:
@@ -62,7 +61,7 @@ except Exception as e:
     logger.error(f"Failed to initialize Supabase client: {e}")
     raise
 
-# Initialize Redis cache (Railway-safe: graceful fallback if unavailable)
+# Initialize Redis cache
 redis_cache = RedisCache(
     host=os.getenv("REDIS_HOST", "localhost"),
     port=int(os.getenv("REDIS_PORT", 6379))
@@ -73,9 +72,6 @@ product_kb = ProductKnowledgeBase(openai_client, supabase)
 order_manager = OrderManager(supabase, product_kb)
 logger.info("Product Knowledge Base and Order Manager initialized")
 
-# Ensure ChromaDB is populated (handles Railway cold starts)
-ensure_knowledge_base(product_kb)
-
 # Flask app
 app = Flask(__name__)
 app.config['JSON_SORT_KEYS'] = False
@@ -84,7 +80,7 @@ app.config['SECRET_KEY'] = os.getenv('JWT_SECRET', 'change-this-secret')
 # Register health check blueprint
 app.register_blueprint(health_bp)
 
-# Attach SocketIO to Flask app
+# Attach SocketIO to Flask app (Step 17)
 socketio.init_app(app)
 
 
@@ -151,7 +147,7 @@ class DatabaseMemoryManager:
 
 
 # ============================================
-# AGENT CLASSES
+# AGENT CLASSES (unchanged from Step 12)
 # ============================================
 
 class LanguageAgent:
@@ -323,6 +319,7 @@ class ResponseAgent:
                     result = self.order_manager.get_order_status(function_args['order_number'])
                     return self.order_manager.format_order_status(result, language)
 
+            # No function call made - check if user is asking about order status generally
             if intent == "order_status":
                 status_messages = {
                     "english": "📦 To check your order status, please share your order number (e.g. ORD-12345). You would have received it after placing your order.",
@@ -433,11 +430,11 @@ class ResponseAgent:
 
 
 # ============================================
-# ORCHESTRATOR
+# ORCHESTRATOR - Step 13: Sentiment integrated
 # ============================================
 
 class AgentOrchestrator:
-    """Coordinates all agents including sentiment analysis and escalation"""
+    """Coordinates all agents including sentiment analysis & escalation"""
 
     def __init__(self, client, supabase_client, redis_cache, product_kb, order_manager):
         self.client = client
@@ -457,9 +454,13 @@ class AgentOrchestrator:
         )
 
         try:
+            # Step 1: Detect language
             language = self.language_agent.detect(user_message)
+
+            # Step 2: Get conversation history (needed for sentiment context)
             conversation_history = self.memory.get_history(user_id, limit=10)
 
+            # ── Step 13: Sentiment Analysis ─────────────────────────────
             sentiment = analyze_sentiment(
                 client=self.client,
                 message=user_message,
@@ -477,6 +478,7 @@ class AgentOrchestrator:
                 }
             )
 
+            # ── If escalation triggered, skip normal flow ────────────────
             if sentiment.should_escalate:
                 self.logger.warning(
                     "ESCALATION TRIGGERED",
@@ -496,9 +498,11 @@ class AgentOrchestrator:
                     supabase_client=self.supabase
                 )
 
+                # Save escalation interaction to memory
                 self.memory.add_message(user_id, "user", user_message)
                 self.memory.add_message(user_id, "assistant", escalation_response)
 
+                # ── Step 17: Broadcast escalation event ──────────────
                 try:
                     ws_manager.broadcast_escalation(
                         case_id=f"ESC-{datetime.now().strftime('%Y%m%d%H%M')}",
@@ -511,13 +515,17 @@ class AgentOrchestrator:
                     self.logger.warning(f"WebSocket broadcast error: {ws_err}")
 
                 return escalation_response
+            # ─────────────────────────────────────────────────────────────
 
+            # Step 3: Normal flow - classify intent and generate response
             intent = self.intent_agent.classify(user_message)
             response = self.response_agent.generate(intent, language, user_message, user_id)
 
+            # Save to memory
             self.memory.add_message(user_id, "user", user_message)
             self.memory.add_message(user_id, "assistant", response)
 
+            # ── Step 17: Broadcast new message event ──────────────
             try:
                 ws_manager.broadcast_new_message(
                     user_id=user_id,
@@ -567,7 +575,7 @@ def webhook():
     """Receive WhatsApp messages from Twilio"""
 
     if request.method == "GET":
-        return "Webhook is ready!", 200
+        return "✅ Webhook is ready!", 200
 
     request_start = time.time()
 
@@ -603,22 +611,19 @@ def webhook():
 @app.route("/")
 def home():
     return {
-        "service": "TechZone WhatsApp Business Automation",
-        "version": "1.0.0",
+        "service": "WhatsApp Business Automation",
+        "version": "4.0.0",
         "status": "online",
         "features": [
             "Multi-agent architecture",
-            "Persistent memory (Supabase)",
-            "Bilingual support (English, Urdu, Roman Urdu)",
+            "Persistent memory",
+            "Bilingual support",
             "Production monitoring",
             "Redis caching",
-            "RAG product knowledge base",
+            "RAG product knowledge",
             "Function calling for orders",
-            "Sentiment analysis",
-            "Complaint escalation",
-            "JWT authentication",
-            "Real-time WebSocket dashboard",
-            "CSV and PDF export"
+            "Sentiment analysis",           # NEW Step 13
+            "Complaint escalation"          # NEW Step 13
         ],
         "endpoints": {
             "webhook": "/webhook",
@@ -626,9 +631,7 @@ def home():
             "ready": "/health/ready",
             "live": "/health/live",
             "metrics": "/metrics",
-            "cache_stats": "/cache/stats",
-            "dashboard": "/dashboard",
-            "login": "/login"
+            "cache_stats": "/cache/stats"
         }
     }
 
@@ -639,16 +642,18 @@ def cache_stats():
 
 
 # ============================================
-# DASHBOARD ROUTES
+# DASHBOARD ROUTES (Step 14)
 # ============================================
 
 @app.route("/login", methods=["GET"])
 def login_page():
+    """Serve the login page"""
     return render_template("login.html")
 
 
 @app.route("/api/login", methods=["POST"])
 def api_login():
+    """Authenticate user and return JWT token via JSON + set cookie"""
     data     = request.get_json()
     username = data.get("username", "").strip()
     password = data.get("password", "")
@@ -659,6 +664,7 @@ def api_login():
 
     token = auth_manager.generate_token(username)
 
+    # Set token as HTTP-only cookie for browser dashboard
     response = make_response(jsonify({
         "token":    token,
         "username": username,
@@ -676,6 +682,7 @@ def api_login():
 
 @app.route("/logout")
 def logout():
+    """Clear auth cookie and redirect to login"""
     response = make_response(redirect("/login"))
     response.delete_cookie("access_token")
     return response
@@ -684,12 +691,14 @@ def logout():
 @app.route("/dashboard")
 @dashboard_login_required
 def dashboard():
+    """Serve the HTML analytics dashboard (protected)"""
     return render_template("dashboard.html")
 
 
 @app.route("/api/dashboard")
 @jwt_required
 def api_dashboard():
+    """JSON endpoint that feeds the dashboard (protected)"""
     try:
         data = analytics_engine.get_dashboard_data()
         return data
@@ -699,7 +708,7 @@ def api_dashboard():
 
 
 # ============================================
-# EXPORT ROUTES
+# EXPORT ROUTES (Step 15)
 # ============================================
 
 @app.route("/export/csv/overview")
@@ -767,7 +776,7 @@ def export_pdf():
 
 
 # ============================================
-# WEBSOCKET EVENT HANDLERS
+# WEBSOCKET EVENT HANDLERS (Step 17)
 # ============================================
 
 @socketio.on("connect")
@@ -782,15 +791,15 @@ def handle_disconnect():
 
 @socketio.on("request_kpi")
 def handle_kpi_request():
+    """Client can request fresh KPIs on demand"""
     ws_manager.broadcast_kpi_update(analytics_engine)
 
 
 if __name__ == "__main__":
     logger.info("=" * 60)
-    logger.info("TechZone Enterprise WhatsApp Automation System")
+    logger.info("🚀 Enterprise WhatsApp Bot - Step 17: WebSocket Real-time")
     logger.info(f"Environment: {os.getenv('ENVIRONMENT', 'development')}")
     logger.info(f"Log level: {os.getenv('LOG_LEVEL', 'INFO')}")
     logger.info("=" * 60)
 
-    port = int(os.environ.get("PORT", 5000))
-    socketio.run(app, host="0.0.0.0", port=port, debug=False, allow_unsafe_werkzeug=True)
+    socketio.run(app, host="0.0.0.0", port=5000, debug=False, allow_unsafe_werkzeug=True)
