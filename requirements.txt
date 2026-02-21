@@ -14,7 +14,7 @@ chromadb==0.4.22
 tiktoken==0.5.2
 
 # Database & Cache
-supabase==2.3.0
+supabase==2.7.4
 redis==5.0.1
 psycopg2-binary==2.9.9
 
