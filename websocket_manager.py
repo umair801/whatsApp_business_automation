@@ -10,8 +10,7 @@ from flask_socketio import SocketIO, emit
 logger = logging.getLogger(__name__)
 
 # ── SocketIO instance (imported by main app) ──
-socketio = SocketIO(cors_allowed_origins="*", async_mode="threading")
-
+socketio = SocketIO(cors_allowed_origins="*", async_mode="eventlet")
 
 class WebSocketManager:
     """Broadcasts real-time events to all connected dashboard clients"""
