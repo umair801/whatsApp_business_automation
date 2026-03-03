@@ -11,9 +11,18 @@ An enterprise-grade WhatsApp customer service automation system powered by multi
 
 ---
 
+## Portfolio
+
+**Website:** https://datawebify.com
+**Project Page:** https://datawebify.com/projects/whatsapp-automation
+**GitHub:** https://github.com/umair801/whatsApp_business_automation
+**Live API:** https://leads.datawebify.com
+
+---
+
 ## Overview
 
-TechZone WhatsApp Automation handles customer inquiries 24/7 with intelligent routing, multilingual support, and real-time business analytics — eliminating 73% of manual support costs while scaling to 5x conversation volume.
+TechZone WhatsApp Automation handles customer inquiries 24/7 with intelligent routing, multilingual support, and real-time business analytics; eliminating 73% of manual support costs while scaling to 5x conversation volume.
 
 **Key Results:**
 - Response time reduced from 18 minutes to under 2 seconds
@@ -67,7 +76,7 @@ TechZone WhatsApp Automation handles customer inquiries 24/7 with intelligent ro
 ## Project Structure
 
 ```
-techzone-whatsapp-automation/
+whatsApp_business_automation/
 ├── app.py                  # Main application entry point
 ├── analytics.py            # Analytics engine and KPI tracking
 ├── auth_manager.py         # JWT authentication
@@ -115,8 +124,8 @@ techzone-whatsapp-automation/
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/yourusername/techzone-whatsapp-automation.git
-cd techzone-whatsapp-automation
+git clone https://github.com/umair801/whatsApp_business_automation.git
+cd whatsApp_business_automation
 ```
 
 ### 2. Install Dependencies

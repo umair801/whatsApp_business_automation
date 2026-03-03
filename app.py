@@ -610,30 +610,7 @@ def webhook():
 
 @app.route("/")
 def home():
-    return {
-        "service": "WhatsApp Business Automation",
-        "version": "4.0.0",
-        "status": "online",
-        "features": [
-            "Multi-agent architecture",
-            "Persistent memory",
-            "Bilingual support",
-            "Production monitoring",
-            "Redis caching",
-            "RAG product knowledge",
-            "Function calling for orders",
-            "Sentiment analysis",           # NEW Step 13
-            "Complaint escalation"          # NEW Step 13
-        ],
-        "endpoints": {
-            "webhook": "/webhook",
-            "health": "/health",
-            "ready": "/health/ready",
-            "live": "/health/live",
-            "metrics": "/metrics",
-            "cache_stats": "/cache/stats"
-        }
-    }
+    return render_template("index.html")
 
 
 @app.route("/cache/stats", methods=["GET"])
@@ -802,4 +779,5 @@ if __name__ == "__main__":
     logger.info(f"Log level: {os.getenv('LOG_LEVEL', 'INFO')}")
     logger.info("=" * 60)
 
-    socketio.run(app, host="0.0.0.0", port=5000, debug=False, allow_unsafe_werkzeug=True)
+    port = int(os.environ.get('PORT', 8080))
+    socketio.run(app, host='0.0.0.0', port=port)
