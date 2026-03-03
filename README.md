@@ -14,9 +14,12 @@ An enterprise-grade WhatsApp customer service automation system powered by multi
 ## Portfolio
 
 **Website:** https://datawebify.com
+
 **Project Page:** https://datawebify.com/projects/whatsapp-automation
+
 **GitHub:** https://github.com/umair801/whatsApp_business_automation
-**Live API:** https://leads.datawebify.com
+
+**Live API:** https://whatsapp.datawebify.com
 
 ---
 

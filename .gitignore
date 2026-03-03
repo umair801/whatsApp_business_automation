@@ -45,3 +45,8 @@ test_*.py
 .pytest_cache/
 htmlcov/
 .coverage
+
+# Local-only folders (never push)
+codes/
+dashboard-spa/
+zzz_Portfolio_display/
