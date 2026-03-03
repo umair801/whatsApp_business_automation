@@ -610,7 +610,7 @@ def webhook():
 
 @app.route("/")
 def home():
-    return render_template("index.html")
+    return render_template("templates/index.html")
 
 
 @app.route("/cache/stats", methods=["GET"])
